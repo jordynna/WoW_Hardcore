@@ -177,7 +177,7 @@ function Hardcore_StoreCharacterInfo( level )
 	Hardcore_Character.char_info.class = class
 	Hardcore_Character.char_info.name = name
 	Hardcore_Character.char_info.realm = realm
-	Hardcore_Character.char_info.version = GetAddOnMetadata("Hardcore", "Version")
+	Hardcore_Character.char_info.version = C_AddOns.GetAddOnMetadata("Hardcore", "Version")
 	if level == nil then
 		Hardcore_Character.char_info.level = UnitLevel("player")
 	else
