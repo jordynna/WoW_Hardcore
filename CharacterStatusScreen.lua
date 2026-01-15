@@ -44,6 +44,7 @@ end
 local f
 if _G["HardcoreBuildLabel"] ~= "Cata" then
 	f = CreateFrame("Frame", "HardcoreOuterFrame", Panel)
+	f:SetFrameStrata("HIGH")
 	f:SetSize(400, 400)
 	f:SetPoint("CENTER")
 	f:Hide()
@@ -478,7 +479,7 @@ function ShowCharacterHC(_hardcore_character)
 	UpdateCharacterHC(
 		_hardcore_character,
 		UnitName("player"),
-		GetAddOnMetadata("Hardcore", "Version"),
+		C_AddOns.GetAddOnMetadata("Hardcore", "Version"),
 		f2,
 		class,
 		class_en,

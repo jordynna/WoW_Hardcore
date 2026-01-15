@@ -468,6 +468,8 @@ function FailureFunction(achievement_name)
 	then
 		if Hardcore_Character.game_version == "WotLK" then
 			max_level = 80
+		elseif Hardcore_Character.game_version == "TBC" then
+			max_level = 70
 		else
 			max_level = 85
 		end
@@ -780,6 +782,8 @@ TradeFrameTradeButton:SetScript("OnClick", function()
 	then
 		if Hardcore_Character.game_version == "WotLK" then
 			max_level = 80
+		elseif Hardcore_Character.game_version == "TBC" then
+			max_level = 70
 		else
 			max_level = 85
 		end
@@ -810,6 +814,38 @@ end)
 function Hardcore:Startup()
 	-- the entry point of our addon
 	-- called inside loading screen before player sees world, some api functions are not available yet.
+
+	if not Hardcore.Original_ChatFrame1_AddMessage then
+		Hardcore.Original_ChatFrame1_AddMessage = ChatFrame1.AddMessage
+	end
+
+	ChatFrame1.AddMessage = function(self, text, ...)
+		-- Safety check: ensure text exists and buffer is active
+		if text and HIDE_RTP_CHAT_MSG_BUFFER > 0 then
+			
+			-- Define the patterns to look for (strip the %s variable)
+			local totalPrefix = string.gsub(TIME_PLAYED_TOTAL, "%%s", "")
+			local levelPrefix = string.gsub(TIME_PLAYED_LEVEL, "%%s", "")
+			
+			-- Check for "Total time played"
+			if string.find(text, totalPrefix, 1, true) then
+				-- Return without calling original function -> Message Hidden
+				return 
+			end
+
+			-- Check for "Time played this level"
+			if string.find(text, levelPrefix, 1, true) then
+				-- Decrement buffer
+				HIDE_RTP_CHAT_MSG_BUFFER = HIDE_RTP_CHAT_MSG_BUFFER - 1
+				if HIDE_RTP_CHAT_MSG_BUFFER < 0 then HIDE_RTP_CHAT_MSG_BUFFER = 0 end
+				
+				return -- Message Hidden
+			end
+		end
+
+		-- If not hidden, pass it to the real chat frame
+		return Hardcore.Original_ChatFrame1_AddMessage(self, text, ...)
+	end
 
 	-- event handling helper
 	self:SetScript("OnEvent", function(self, event, ...)
@@ -959,17 +995,93 @@ function Hardcore:PLAYER_LOGIN()
 
 	-- For dungeon tracking targetting of door npcs
 	--self:RegisterEvent("ADDON_ACTION_FORBIDDEN")
+	
+	ChatFrame_AddMessageEventFilter("CHAT_MSG_SYSTEM", function(frame, event, message, ...)
+        if HIDE_RTP_CHAT_MSG_BUFFER > 0 then
+            -- Get the localized global strings for time played and strip the "%s" variable
+            -- This ensures it works on all client languages
+            local totalPrefix = string.gsub(TIME_PLAYED_TOTAL, "%%s", "") -- "Total time played: "
+            local levelPrefix = string.gsub(TIME_PLAYED_LEVEL, "%%s", "") -- "Time played this level: "
+
+            -- Check if the message starts with "Total time played"
+            if string.find(message, totalPrefix, 1, true) then
+                if debug then 
+                    Hardcore:Debug("ChatFilter: Hidden 'Total' message: " .. message) 
+                end
+                -- We hide this line, but don't decrement yet because the 'Level' line comes next
+                return true 
+            end
+
+            -- Check if the message starts with "Time played this level"
+            if string.find(message, levelPrefix, 1, true) then
+                if debug then 
+                    Hardcore:Debug("ChatFilter: Hidden 'Level' message. Decrementing Buffer.") 
+                end
+                
+                -- This is usually the last message in the block, so we decrement now
+                HIDE_RTP_CHAT_MSG_BUFFER = HIDE_RTP_CHAT_MSG_BUFFER - 1
+                if HIDE_RTP_CHAT_MSG_BUFFER < 0 then HIDE_RTP_CHAT_MSG_BUFFER = 0 end
+                
+                return true 
+            end
+        end
+        
+        return false, message, ...
+    end)
 
 	Hardcore:InitializeSavedVariables()
 	Hardcore:InitializeSettingsSavedVariables()
 
 	Hardcore:ApplyAlertFrameSettings()
 
-	-- different guid means new character with the same name
+	-- different guid means new character with the same name OR Era->TBC Transfer
 	if Hardcore_Character.guid ~= PLAYER_GUID then
-		Hardcore:Print("New character detected.  Contact a mod or technician in #addon-appeal if this is unexpected.")
-		Hardcore:ForceResetSavedVariables()
-		WARNING = ""
+        -- DEBUG START
+        Hardcore:Print("|cff00FFFF[DEBUG] GUID Mismatch Detected!|r")
+        Hardcore:Print("   Stored GUID (Old): " .. tostring(Hardcore_Character.guid))
+        Hardcore:Print("   Player GUID (New): " .. tostring(PLAYER_GUID))
+        Hardcore:Print("   Stored Game Version: " .. tostring(Hardcore_Character.game_version))
+        -- DEBUG END
+		
+		-- 1. Security Hash Check
+		-- Hardcore_VerifyChecksum() runs the check but returns nil. 
+        -- We must check Hardcore_GetSecurityStatus() for the actual result ("OK" or "FAIL").
+		Hardcore_VerifyChecksum() 
+        local securityStatus = Hardcore_GetSecurityStatus()
+        local isFileAuthentic = (securityStatus == "OK")
+        
+        -- DEBUG START
+        Hardcore:Print("   Security Status: " .. tostring(securityStatus))
+        Hardcore:Print("   Is Authentic? " .. tostring(isFileAuthentic))
+        -- DEBUG END
+		
+		-- 2. Era Check
+		local isFromEra = (Hardcore_Character.game_version == "Era" or Hardcore_Character.game_version == "SoM" or Hardcore_Character.game_version == "Classic")
+		
+        -- DEBUG START
+        Hardcore:Print("   Is From Era/SoM/Classic? " .. tostring(isFromEra))
+        -- DEBUG END
+
+		if isFileAuthentic and isFromEra then
+			Hardcore:Print("|cff00FF00Hardcore:|r Era-to-TBC Transfer Detected. Verifying Playtime...")
+			
+			-- Flag this session as pending verification.
+			-- We DO NOT update the GUID yet, and we DO NOT wipe the data.
+			Hardcore.pending_transfer_verification = true
+			
+		else
+            -- DEBUG START
+            Hardcore:Print("|cffFF0000[DEBUG] Migration Logic Failed.|r")
+            if not isFileAuthentic then Hardcore:Print("   Reason: File Tampered/Checksum Failed (Status: " .. tostring(securityStatus) .. ")") end
+            if not isFromEra then Hardcore:Print("   Reason: Not an Era/SoM file (Version: " .. tostring(Hardcore_Character.game_version) .. ")") end
+            -- DEBUG END
+
+			-- Hash failed, or not from Era. Treat as new character.
+			Hardcore:Print("New character detected (or file security failed). Resetting data.")
+			Hardcore:ForceResetSavedVariables()
+			Hardcore_Character.guid = PLAYER_GUID
+			WARNING = ""
+		end
 	end
 
 	-- Improved time resolutions for segments
@@ -1046,7 +1158,7 @@ function Hardcore:PLAYER_LOGIN()
 
 	-- check players version against highest version
 	local FULL_PLAYER_NAME = Hardcore_GetPlayerPlusRealmName()
-	Hardcore:CheckVersionsAndUpdate(FULL_PLAYER_NAME, GetAddOnMetadata("Hardcore", "Version"))
+	Hardcore:CheckVersionsAndUpdate(FULL_PLAYER_NAME, C_AddOns.GetAddOnMetadata("Hardcore", "Version"))
 
 	-- reset debug log; To view debug log, log out and see saved variables before logging back in
 	Hardcore_Settings.debug_log = {}
@@ -1242,17 +1354,19 @@ function Hardcore:INSPECT_READY(...)
 
 	hooksecurefunc("CharacterFrameTab_OnClick", function(self)
 		local name = self:GetName()
-		if
-			(name ~= "InspectFrameTab3" and _G["HardcoreBuildLabel"] ~= "WotLK")
-			or (name ~= "InspectFrameTab4" and _G["HardcoreBuildLabel"] == "WotLK")
-		then -- 3:era, 4:wotlk
+		-- Determine if we are on a version with 3 default tabs (TBC, WotLK, Cata) or 2 (Era/SoM)
+		local isExpansion = _G["HardcoreBuildLabel"] == "WotLK" or _G["HardcoreBuildLabel"] == "TBC" or _G["HardcoreBuildLabel"] == "Cata"
+		
+		-- Target Tab is 4 for Expansions, 3 for Era
+		local targetTabName = isExpansion and "InspectFrameTab4" or "InspectFrameTab3"
+		local targetTabID = isExpansion and 4 or 3
+
+		if name ~= targetTabName then
 			return
 		end
-		if _G["HardcoreBuildLabel"] == "WotLK" then
-			PanelTemplates_SetTab(InspectFrame, 4)
-		else
-			PanelTemplates_SetTab(InspectFrame, 3)
-		end
+
+		PanelTemplates_SetTab(InspectFrame, targetTabID)
+
 		if _G["InspectPaperDollFrame"] ~= nil then
 			_G["InspectPaperDollFrame"]:Hide()
 		end
@@ -1703,6 +1817,47 @@ local function initiateRecoverTime(duration_since_last_recording)
 end
 
 function Hardcore:TIME_PLAYED_MSG(...)
+	-- ERA -> TBC IDENTITY VERIFICATION
+	if Hardcore.pending_transfer_verification then
+		local totalTimePlayed, _ = ...
+		local storedTime = Hardcore_Character.time_played or 0
+		local timeDiff = math.abs(totalTimePlayed - storedTime)
+        
+        -- DEBUG START
+        Hardcore:Print("|cff00FFFF[DEBUG] Time Verification Running...|r")
+        Hardcore:Print("   Server Time: " .. tostring(totalTimePlayed))
+        Hardcore:Print("   Stored Time: " .. tostring(storedTime))
+        Hardcore:Print("   Difference: " .. tostring(timeDiff) .. " seconds")
+        -- DEBUG END
+
+		-- Tolerance Window: 15 Minutes (900 seconds) to account for minor sync differences
+		if timeDiff < 900 then
+			Hardcore:Print("|cff00FF00Hardcore:|r Identity Verified. Updating Database to TBC.")
+			
+			-- 1. Update GUID
+			Hardcore_Character.guid = UnitGUID("player")
+			
+			-- 2. Update Version
+			Hardcore_Character.game_version = "TBC" -- or _G["HardcoreBuildLabel"]
+			
+			-- 3. Reset Gold Tracker (Prevents "Tampered" warning due to GUID change)
+			Hardcore_Character.gt = nil 
+			
+			-- 4. Re-Sign the file
+			Hardcore_StoreChecksum()
+			
+			Hardcore:Print("Character successfully migrated.")
+		else
+			-- Identity Check Failed (Time mismatch implies new character with same name)
+			Hardcore:Print("|cffFF0000Hardcore:|r Playtime mismatch (Server: "..SecondsToTime(totalTimePlayed).." vs File: "..SecondsToTime(storedTime).."). Resetting.")
+			Hardcore:ForceResetSavedVariables()
+			Hardcore_Character.guid = UnitGUID("player")
+			Hardcore_StoreChecksum()
+		end
+		
+		-- Clear the flag so we don't run this again
+		Hardcore.pending_transfer_verification = nil
+	end
 	-- Don't update anymore after the data security checksum has been calculated
 	if player_logged_out == true then
 		return
@@ -1948,11 +2103,27 @@ end
 
 local Cached_ChatFrame_DisplayTimePlayed = ChatFrame_DisplayTimePlayed
 ChatFrame_DisplayTimePlayed = function(...)
-	if HIDE_RTP_CHAT_MSG_BUFFER > 0 then
+    -- Debug: Check what the buffer sees when the game tries to print the message
+    if debug then
+        Hardcore:Debug("Game attempted to display TimePlayed. Current Buffer: " .. tostring(HIDE_RTP_CHAT_MSG_BUFFER))
+    end
+
+	if HIDE_RTP_CHAT_MSG_BUFFER == 1 then
 		HIDE_RTP_CHAT_MSG_BUFFER = HIDE_RTP_CHAT_MSG_BUFFER - 1
-		return
-	end
-	return Cached_ChatFrame_DisplayTimePlayed(...)
+        if debug then
+            Hardcore:Debug("Message Hidden. New Buffer: " .. tostring(HIDE_RTP_CHAT_MSG_BUFFER))
+        end
+        return
+    elseif HIDE_RTP_CHAT_MSG_BUFFER == 2 then
+        HIDE_RTP_CHAT_MSG_BUFFER = HIDE_RTP_CHAT_MSG_BUFFER - 2
+        if debug then
+            Hardcore:Debug("Messages Hidden. New Buffer: " .. tostring(HIDE_RTP_CHAT_MSG_BUFFER))
+        end
+        return
+    end
+
+    -- If buffer is 0, we let the message through
+    return Cached_ChatFrame_DisplayTimePlayed(...)
 end
 
 function Hardcore:RequestTimePlayed()
@@ -1974,6 +2145,8 @@ function Hardcore:ShouldShowPlaytimeWarning(level, percentage)
 	then
 		if Hardcore_Character.game_version == "WotLK" then
 			level = (level * 60) / 80
+		elseif Hardcore_Character.game_version == "TBC" then
+			level = (level * 60) / 70
 		else -- Cataclysm or other
 			level = (level * 60) / 85
 		end
@@ -2333,6 +2506,8 @@ local function levelToast(rea_name, rea_class, rea_level)
 		toastMaxLevel = "85"
 	elseif _G["HardcoreBuildLabel"] == "WotLK" then
 		toastMaxLevel = "80"
+	elseif _G["HardcoreBuildLabel"] == "TBC" then
+		toastMaxLevel = "70"
 	end
 	if tostring(rea_level) ~= toastMaxLevel then
 		return
@@ -2687,7 +2862,7 @@ function Hardcore:FormatRow(row, fullcolor, formattype)
 					local version
 
 					if row.name == FULL_PLAYER_NAME then
-						version = GetAddOnMetadata("Hardcore", "Version")
+						version = C_AddOns.GetAddOnMetadata("Hardcore", "Version")
 					else
 						version = guild_versions[row.name]
 					end
@@ -3105,7 +3280,7 @@ function Hardcore:initMinimapButton()
 			if not tooltip or not tooltip.AddLine then
 				return
 			end
-			tooltip:AddLine("Hardcore (" .. GetAddOnMetadata("Hardcore", "Version") .. ")")
+			tooltip:AddLine("Hardcore (" .. C_AddOns.GetAddOnMetadata("Hardcore", "Version") .. ")")
 			tooltip:AddLine("|cFFCFCFCFleft click|r toggle hc window")
 			tooltip:AddLine("|cFFCFCFCFright click|r open hc options")
 		end,
@@ -3335,7 +3510,7 @@ end
 
 local ATTRIBUTE_SEPARATOR = "_"
 function Hardcore:GenerateVerificationString()
-	local version = GetAddOnMetadata("Hardcore", "Version")
+	local version = C_AddOns.GetAddOnMetadata("Hardcore", "Version")
 	local _, class, _, race, _, name = GetPlayerInfoByGUID(UnitGUID("player"))
 	local realm = GetRealmName()
 	local level = UnitLevel("player")
@@ -3382,7 +3557,7 @@ function Hardcore:InitiatePulse()
 		local isInGuild, _, guild_rank_index = GetGuildInfo("player")
 		if CTL and isInGuild then
 			-- Send along the version we're using
-			local version = GetAddOnMetadata("Hardcore", "Version")
+			local version = C_AddOns.GetAddOnMetadata("Hardcore", "Version")
 			local commMessage = COMM_COMMANDS[1] .. COMM_COMMAND_DELIM .. version
 			CTL:SendAddonMessage("BULK", COMM_NAME, commMessage, "GUILD")
 			hc_guild_rank_index = guild_rank_index
@@ -3400,7 +3575,7 @@ end
 function Hardcore:SendCharacterData(dest)
 	if CTL then
 		local commMessage = COMM_COMMANDS[4] .. COMM_COMMAND_DELIM
-		commMessage = commMessage .. GetAddOnMetadata("Hardcore", "Version") .. COMM_FIELD_DELIM -- Add Version
+		commMessage = commMessage .. C_AddOns.GetAddOnMetadata("Hardcore", "Version") .. COMM_FIELD_DELIM -- Add Version
 		if Hardcore_Character.first_recorded ~= nil and Hardcore_Character.first_recorded ~= -1 then
 			commMessage = commMessage .. Hardcore_Character.first_recorded .. COMM_FIELD_DELIM -- Add creation time
 		else
@@ -3502,7 +3677,7 @@ function Hardcore:ReceivePulse(data, sender)
 	Hardcore:CheckVersionsAndUpdate(sender, data)
 
 	-- Set my versions
-	local version = GetAddOnMetadata("Hardcore", "Version")
+	local version = C_AddOns.GetAddOnMetadata("Hardcore", "Version")
 	if version ~= guild_highest_version then
 		guild_versions_status[FULL_PLAYER_NAME] = "outdated"
 	end
@@ -3517,7 +3692,7 @@ end
 
 function Hardcore:CheckVersionsAndUpdate(playername, versionstring)
 	if guild_highest_version == nil then
-		guild_highest_version = GetAddOnMetadata("Hardcore", "Version")
+		guild_highest_version = C_AddOns.GetAddOnMetadata("Hardcore", "Version")
 	end
 
 	-- Hardcore:Debug('Comparing: data: '..versionstring.. ' to guild_highest_version: '..guild_highest_version)
@@ -3629,11 +3804,34 @@ ChatFrame_AddMessageEventFilter("CHAT_MSG_GUILD", function(frame, event, message
 	-- note that you must return *all* of the values that were passed to your filter, even ones you didn't change
 end)
 
-ChatFrame_AddMessageEventFilter("CHAT_MSG_SYSTEM", function(frame, event, message, sender, ...)
-	if message:match("No player named") and message:match("is currently playing") then
-		return true, nil, sender, ...
+ChatFrame_AddMessageEventFilter("CHAT_MSG_GUILD", function(frame, event, message, sender, ...)
+	if
+		hc_mute_inguild
+		and guild_online[sender]
+		and guild_online[sender]["level"]
+		and tonumber(hc_mute_inguild) >= guild_online[sender]["level"]
+	then
+		return
+	end
+
+	if Hardcore_Settings.filter_f_in_chat then
+		if message == "f" or message == "F" then
+			return true, message, sender, ...
+		end
+	end
+	if Hardcore_Settings.show_version_in_chat then
+		if guild_versions[sender] then
+			message = "|cfffd9122[" .. guild_versions[sender] .. "]|r " .. message
+		end
+	end
+
+	local _name, _ = string.split("-", sender)
+	if _G.hc_online_player_ranks[_name] and _G.hc_online_player_ranks[_name] == "officer" then
+		message = "\124cFFFF0000<MOD>\124r " .. message
+		-- message = "|T" .. "Interface\\Addons\\Hardcore\\Media\\icon_crown.blp" .. ":8:8:0:0:64:64:4:60:4:60|t " .. message -- crown
 	end
 	return false, message, sender, ... -- don't hide this message
+	-- note that you must return *all* of the values that were passed to your filter, even ones you didn't change
 end)
 
 ChatFrame_AddMessageEventFilter("CHAT_MSG_CHANNEL", function(frame, event, message, sender, ...)
