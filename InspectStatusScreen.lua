@@ -2,6 +2,7 @@ local IPanel = CreateFrame("Frame", nil, CharacterFrame)
 IPanel:SetPoint("TOPLEFT", CharacterFrame, "TOPLEFT", -50, -200)
 IPanel:SetPoint("BOTTOMRIGHT", CharacterFrame, "BOTTOMRIGHT", -200, 0)
 local I_f = CreateFrame("Frame", "YourFrameName", IPanel)
+I_f:SetFrameStrata("HIGH")
 I_f:SetSize(400, 400)
 I_f:SetPoint("CENTER")
 I_f:Hide()
@@ -50,12 +51,21 @@ function ShowInspectHC(_hardcore_character, other_name, version)
 	IPanel:SetParent(InspectFrame)
 	IPanel:SetPoint("TOPLEFT", InspectFrame, "TOPLEFT", -50, -200)
 	IPanel:SetPoint("BOTTOMRIGHT", InspectFrame, "BOTTOMRIGHT", -200, 0)
-	I_t:SetPoint("TOPLEFT", InspectFrame, "TOPLEFT", 2, -1)
-	I_tr:SetPoint("TOPLEFT", InspectFrame, "TOPLEFT", 258, -1)
-	I_bl:SetPoint("TOPLEFT", InspectFrame, "TOPLEFT", 2, -257)
-	I_br:SetPoint("TOPLEFT", InspectFrame, "TOPLEFT", 258, -257)
-	I_f2:SetPoint("TOPLEFT", InspectFrame, "TOPLEFT", 8, -38)
-	title_text:SetPoint("TOPLEFT", InspectFrame, "TOPLEFT", 150, -45)
+	
+	-- Adjusted Offsets: Moved UP (+Y) and LEFT (-X)
+	-- If it is still not perfect, adjust these numbers. 
+	-- Make X more negative to go Left. Make Y more positive to go Up.
+	local xOffset = -12 
+	local yOffset = 13 
+	
+	I_t:SetPoint("TOPLEFT", InspectFrame, "TOPLEFT", xOffset, yOffset)
+	I_tr:SetPoint("TOPLEFT", InspectFrame, "TOPLEFT", xOffset + 256, yOffset)
+	I_bl:SetPoint("TOPLEFT", InspectFrame, "TOPLEFT", xOffset, yOffset - 256)
+	I_br:SetPoint("TOPLEFT", InspectFrame, "TOPLEFT", xOffset + 256, yOffset - 256)
+	
+	-- Adjust content and title relative to the new background position
+	I_f2:SetPoint("TOPLEFT", InspectFrame, "TOPLEFT", xOffset + 6, yOffset - 37)
+	title_text:SetPoint("TOPLEFT", InspectFrame, "TOPLEFT", xOffset + 148, yOffset - 44)
 
 	local class, class_en, _ = UnitClass("target")
 	UpdateCharacterHC(_hardcore_character, other_name, version, I_f2, class, class_en, UnitLevel("target"))

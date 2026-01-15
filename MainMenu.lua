@@ -750,7 +750,7 @@ local function DrawVerifyTab(container, _hardcore_character)
 	local string_format_new = true
 	local first_menu_description
 	local function GenerateVerificationString()
-		local version = GetAddOnMetadata("Hardcore", "Version")
+		local version = C_AddOns.GetAddOnMetadata("Hardcore", "Version")
 		local _, class, _, race, _, name = GetPlayerInfoByGUID(UnitGUID("player"))
 		local realm = GetRealmName()
 		local level = UnitLevel("player")
@@ -805,7 +805,7 @@ local function DrawVerifyTab(container, _hardcore_character)
 		end
 	end
 
-	local version = GetAddOnMetadata("Hardcore", "Version")
+	local version = C_AddOns.GetAddOnMetadata("Hardcore", "Version")
 	local _, class, _, race, _, name = GetPlayerInfoByGUID(UnitGUID("player"))
 	local realm = GetRealmName()
 	local level = UnitLevel("player")
@@ -1348,7 +1348,7 @@ local function DrawDungeonsTab(container, _hardcore_character)
 		boss_data:SetText(boss_str)
 	end
 
-	local version = GetAddOnMetadata("Hardcore", "Version")
+	local version = C_AddOns.GetAddOnMetadata("Hardcore", "Version")
 
 	-- Add the banner
 	local first_menu_description_title = AceGUI:Create("Label")
@@ -1495,7 +1495,7 @@ local function DrawDungeonsTab(container, _hardcore_character)
 		"|c00FFFF00You've run "
 			.. #_hardcore_character.dt.runs
 			.. " dungeons. ("
-			.. GetAddOnMetadata("Hardcore", "Version")
+			.. C_AddOns.GetAddOnMetadata("Hardcore", "Version")
 			.. ", "
 			.. UnitName("player")
 			.. ", "
@@ -1588,7 +1588,7 @@ local function DrawAccountabilityTab(container)
 				) or player_name_short == UnitName("player")
 			then
 				if player_name_short == UnitName("player") then
-					version_text = GetAddOnMetadata("Hardcore", "Version")
+					version_text = C_AddOns.GetAddOnMetadata("Hardcore", "Version")
 				else
 					version_text = hardcore_modern_menu_state.guild_versions[player_name_long]
 				end

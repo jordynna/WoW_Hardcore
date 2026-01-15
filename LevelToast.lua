@@ -63,7 +63,7 @@ frame.desc:SetPoint("TOP", 10, -30)
 frame.desc:SetTextColor(1, 0.8, 0, 1)
 frame.desc:SetJustifyH("LEFT")
 frame.desc:SetFont("Fonts\\blei00d.TTF", 14, "")
-frame.desc:SetText("New level 60!")
+frame.desc:SetText("New level 70!")
 
 local ticker_handler = nil
 local main_alpha = 0
