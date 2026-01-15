@@ -3575,7 +3575,7 @@ end
 function Hardcore:SendCharacterData(dest)
 	if CTL then
 		local commMessage = COMM_COMMANDS[4] .. COMM_COMMAND_DELIM
-		commMessage = commMessage .. C_Addons.GetAddOnMetadata("Hardcore", "Version") .. COMM_FIELD_DELIM -- Add Version
+		commMessage = commMessage .. C_AddOns.GetAddOnMetadata("Hardcore", "Version") .. COMM_FIELD_DELIM -- Add Version
 		if Hardcore_Character.first_recorded ~= nil and Hardcore_Character.first_recorded ~= -1 then
 			commMessage = commMessage .. Hardcore_Character.first_recorded .. COMM_FIELD_DELIM -- Add creation time
 		else
@@ -3692,7 +3692,7 @@ end
 
 function Hardcore:CheckVersionsAndUpdate(playername, versionstring)
 	if guild_highest_version == nil then
-		guild_highest_version = C_Addons.GetAddOnMetadata("Hardcore", "Version")
+		guild_highest_version = C_AddOns.GetAddOnMetadata("Hardcore", "Version")
 	end
 
 	-- Hardcore:Debug('Comparing: data: '..versionstring.. ' to guild_highest_version: '..guild_highest_version)
