@@ -7,7 +7,7 @@
 ## X-Category: Leveling,Guild
 ## Version: 0.11.58b
 
-
+## IconTexture: Interface\AddOns\Hardcore\Media\wowhc-emblem-white-red.blp
 ## DefaultState: enabled
 ## SavedVariables: Hardcore_Settings,Backup_Character_Data
 ## SavedVariablesPerCharacter: WARNING,Hardcore_Character
