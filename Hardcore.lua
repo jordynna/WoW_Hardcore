@@ -3557,7 +3557,7 @@ function Hardcore:InitiatePulse()
 		local isInGuild, _, guild_rank_index = GetGuildInfo("player")
 		if CTL and isInGuild then
 			-- Send along the version we're using
-			local version = C_Addons.GetAddonMetadata("Hardcore", "Version")
+			local version = C_AddOns.GetAddOnMetadata("Hardcore", "Version")
 			local commMessage = COMM_COMMANDS[1] .. COMM_COMMAND_DELIM .. version
 			CTL:SendAddonMessage("BULK", COMM_NAME, commMessage, "GUILD")
 			hc_guild_rank_index = guild_rank_index
@@ -3677,7 +3677,7 @@ function Hardcore:ReceivePulse(data, sender)
 	Hardcore:CheckVersionsAndUpdate(sender, data)
 
 	-- Set my versions
-	local version = C_Addons.GetAddonMetadata("Hardcore", "Version")
+	local version = C_AddOns.GetAddOnMetadata("Hardcore", "Version")
 	if version ~= guild_highest_version then
 		guild_versions_status[FULL_PLAYER_NAME] = "outdated"
 	end
