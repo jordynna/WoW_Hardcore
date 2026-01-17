@@ -92,8 +92,11 @@ local function DungeonTrackerGetDungeonMaxLevel(name)
 		if Hardcore_Character.game_version ~= nil then
 			if Hardcore_Character.game_version == "Era" or Hardcore_Character.game_version == "SoM" then
 				max_level = dt_db_max_levels[name][1]
-			elseif Hardcore_Character.game_version == "WotLK" or Hardcore_Character.game_version == "Cata" then
+			elseif Hardcore_Character.game_version == "TBC" then
 				max_level = dt_db_max_levels[name][2]
+			elseif Hardcore_Character.game_version == "WotLK" or Hardcore_Character.game_version == "Cata" then
+				-- WotLK/Cata is now the 3rd column
+				max_level = dt_db_max_levels[name][3]
 			end
 		end
 	end
@@ -131,12 +134,17 @@ function DungeonTrackerGetAllDungeonMaxLevels()
 
 	for i, v in pairs(dt_db) do
 		if v[4] == "D" then
-			local max_era_level = v[7][1]
-			if max_era_level == 1000 then
-				table.insert(the_table, { v[3], "--", v[7][2] })
-			else
-				table.insert(the_table, { v[3], max_era_level, v[7][2] })
-			end
+			local max_era = v[7][1]
+			local max_tbc = v[7][2]
+			local max_wotlk = v[7][3]
+
+			-- Handle "1000" (Unlimited) for display purposes
+			if max_era == 1000 then max_era = "--" end
+			if max_tbc == 1000 then max_tbc = "--" end
+			if max_wotlk == 1000 then max_wotlk = "--" end
+
+			-- Return all three
+			table.insert(the_table, { v[3], max_era, max_tbc, max_wotlk })
 		end
 	end
 
