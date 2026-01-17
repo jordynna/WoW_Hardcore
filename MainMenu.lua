@@ -637,75 +637,89 @@ local function DrawRulesTab(container)
 	scroll_frame:AddChild(general_rules_description)
 
 	local function DrawDungeonLevels(scroll_Frame)
-		local function addEntry(_scroll_frame, _name, _era, _wotlk)
+		-- Helper to add a row with 4 columns
+		local function addEntry(_scroll_frame, _name, _era, _tbc, _wotlk)
 			local entry = AceGUI:Create("SimpleGroup")
 			entry:SetLayout("Flow")
 			entry:SetFullWidth(true)
 			_scroll_frame:AddChild(entry)
 
 			local filler_label = AceGUI:Create("Label")
-			filler_label:SetWidth(200)
+			filler_label:SetWidth(20) -- Reduced filler to fit more columns
 			filler_label:SetText("")
-			filler_label:SetFont("Fonts\\FRIZQT__.TTF", 12, "")
 			entry:AddChild(filler_label)
 
 			local name_label = AceGUI:Create("Label")
-			name_label:SetWidth(175)
+			name_label:SetWidth(180)
 			name_label:SetText(_name)
 			name_label:SetFont("Fonts\\FRIZQT__.TTF", 12, "")
 			entry:AddChild(name_label)
 
-			local level_label = AceGUI:Create("Label")
-			level_label:SetWidth(155)
-			level_label:SetText(_era)
-			level_label:SetFont("Fonts\\FRIZQT__.TTF", 12, "")
-			entry:AddChild(level_label)
+			local era_label = AceGUI:Create("Label")
+			era_label:SetWidth(80)
+			era_label:SetText(_era)
+			era_label:SetFont("Fonts\\FRIZQT__.TTF", 12, "")
+			entry:AddChild(era_label)
 
-			local wotlk_level = AceGUI:Create("Label")
-			wotlk_level:SetWidth(100)
-			wotlk_level:SetText(_wotlk)
-			wotlk_level:SetFont("Fonts\\FRIZQT__.TTF", 12, "")
-			entry:AddChild(wotlk_level)
+			local tbc_label = AceGUI:Create("Label")
+			tbc_label:SetWidth(80)
+			tbc_label:SetText(_tbc)
+			tbc_label:SetFont("Fonts\\FRIZQT__.TTF", 12, "")
+			entry:AddChild(tbc_label)
+
+			local wotlk_label = AceGUI:Create("Label")
+			wotlk_label:SetWidth(80)
+			wotlk_label:SetText(_wotlk)
+			wotlk_label:SetFont("Fonts\\FRIZQT__.TTF", 12, "")
+			entry:AddChild(wotlk_label)
 		end
+
+		-- Create the Header Row
 		local row_header = AceGUI:Create("SimpleGroup")
 		row_header:SetLayout("Flow")
 		row_header:SetFullWidth(true)
 		scroll_frame:AddChild(row_header)
 
 		local filler_label = AceGUI:Create("Label")
-		filler_label:SetWidth(200)
+		filler_label:SetWidth(20)
 		filler_label:SetText("")
-		filler_label:SetFont("Fonts\\FRIZQT__.TTF", 12, "")
 		row_header:AddChild(filler_label)
 
 		local name_label = AceGUI:Create("Label")
-		name_label:SetWidth(150)
+		name_label:SetWidth(180)
 		name_label:SetText("|c00FFFF00Dungeon Name|r")
 		name_label:SetFont("Fonts\\FRIZQT__.TTF", 12, "")
 		row_header:AddChild(name_label)
 
 		local level_label = AceGUI:Create("Label")
-		level_label:SetWidth(150)
-		level_label:SetText("|c00FFFF00Max Lvl (Era)|r")
+		level_label:SetWidth(80)
+		level_label:SetText("|c00FFFF00Era|r")
 		level_label:SetFont("Fonts\\FRIZQT__.TTF", 12, "")
 		row_header:AddChild(level_label)
 
+		local tbc_level_label = AceGUI:Create("Label")
+		tbc_level_label:SetWidth(80)
+		tbc_level_label:SetText("|c00FFFF00TBC|r")
+		tbc_level_label:SetFont("Fonts\\FRIZQT__.TTF", 12, "")
+		row_header:AddChild(tbc_level_label)
+
 		local max_level_label = AceGUI:Create("Label")
-		max_level_label:SetWidth(200)
+		max_level_label:SetWidth(120)
 		if _G["HardcoreBuildLabel"] == "Cata" then
-			max_level_label:SetText("|c00FFFF00Max Lvl (Cata)|r")
+			max_level_label:SetText("|c00FFFF00Cata|r")
 		else
-			max_level_label:SetText("|c00FFFF00Max Lvl (WotLK)|r")
+			max_level_label:SetText("|c00FFFF00WotLK|r")
 		end
 		max_level_label:SetFont("Fonts\\FRIZQT__.TTF", 12, "")
 		row_header:AddChild(max_level_label)
 
+		-- Populate the list
 		local max_level_table = DungeonTrackerGetAllDungeonMaxLevels()
 		for i, v in pairs(max_level_table) do
-			addEntry(scroll_frame, v[1], v[2], v[3])
+			addEntry(scroll_frame, v[1], v[2], v[3], v[4])
 		end
 
-		addEntry(scroll_frame, "\n\n\n\n", "", "")
+		addEntry(scroll_frame, "\n\n\n\n", "", "", "")
 	end
 	DrawRulesLabel("Dungeon Groups", scroll_frame)
 	local general_rules_description = AceGUI:Create("Label")
