@@ -814,6 +814,19 @@ end)
 function Hardcore:Startup()
 	-- the entry point of our addon
 	-- called inside loading screen before player sees world, some api functions are not available yet.
+	
+	Hardcore.UserRequestedPlayed = false
+    
+    -- If the user types /played, we allow the next message through
+    if SlashCmdList then
+        hooksecurefunc(SlashCmdList, "PLAYED", function()
+            Hardcore.UserRequestedPlayed = true
+            -- Reset the flag after 3 seconds in case the server never responds
+            C_Timer.After(3.0, function() 
+                 Hardcore.UserRequestedPlayed = false 
+            end)
+        end)
+    end
 
 	if not Hardcore.Original_ChatFrame1_AddMessage then
 		Hardcore.Original_ChatFrame1_AddMessage = ChatFrame1.AddMessage
@@ -997,31 +1010,25 @@ function Hardcore:PLAYER_LOGIN()
 	--self:RegisterEvent("ADDON_ACTION_FORBIDDEN")
 	
 	ChatFrame_AddMessageEventFilter("CHAT_MSG_SYSTEM", function(frame, event, message, ...)
-        if HIDE_RTP_CHAT_MSG_BUFFER > 0 then
-            -- Get the localized global strings for time played and strip the "%s" variable
-            -- This ensures it works on all client languages
-            local totalPrefix = string.gsub(TIME_PLAYED_TOTAL, "%%s", "") -- "Total time played: "
-            local levelPrefix = string.gsub(TIME_PLAYED_LEVEL, "%%s", "") -- "Time played this level: "
+        
+        -- 1. Check if this is a "Time Played" message
+        -- We clean the global strings to remove the %s variable so we can match the text
+        local totalPrefix = string.gsub(TIME_PLAYED_TOTAL or "Total time played", "%%s", "")
+        local levelPrefix = string.gsub(TIME_PLAYED_LEVEL or "Time played this level", "%%s", "")
+        
+        local isTimePlayedMsg = false
+        if string.find(message, totalPrefix, 1, true) or string.find(message, levelPrefix, 1, true) then
+            isTimePlayedMsg = true
+        end
 
-            -- Check if the message starts with "Total time played"
-            if string.find(message, totalPrefix, 1, true) then
-                if debug then 
-                    Hardcore:Debug("ChatFilter: Hidden 'Total' message: " .. message) 
-                end
-                -- We hide this line, but don't decrement yet because the 'Level' line comes next
-                return true 
-            end
-
-            -- Check if the message starts with "Time played this level"
-            if string.find(message, levelPrefix, 1, true) then
-                if debug then 
-                    Hardcore:Debug("ChatFilter: Hidden 'Level' message. Decrementing Buffer.") 
-                end
-                
-                -- This is usually the last message in the block, so we decrement now
-                HIDE_RTP_CHAT_MSG_BUFFER = HIDE_RTP_CHAT_MSG_BUFFER - 1
-                if HIDE_RTP_CHAT_MSG_BUFFER < 0 then HIDE_RTP_CHAT_MSG_BUFFER = 0 end
-                
+        -- 2. Logic: Hide it if it's automated, Show it if it's manual
+        if isTimePlayedMsg then
+            if Hardcore.UserRequestedPlayed then
+                -- The user explicitly asked for this. Let them see it.
+                -- (We don't reset the flag here immediately because the "Level" message comes right after the "Total" message)
+                return false, message, ...
+            else
+                -- The user did NOT type /played. This is spam from our addon loop. Hide it.
                 return true 
             end
         end

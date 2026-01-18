@@ -24,67 +24,67 @@ dt_db = {
 				{ 914, 1487, 3366 },			-- Leaders of the Fang, Deviate Eradication, The Glowing Shard
 				{{"Mutanus",3654}, {"Kresh",3653}, {"Lady Anacondra",3671}, {"Lord Cobrahn",3669}, {"Lord Pythas",3670}, {"Skum",3674}, {"Lord Serpentis",3673}, {"Verdan the Everliving",5775}}
 	}, 
-	{ 36, 1581, "The Deadmines", "D", 5, 1, { 26, 26, 24 }, 
+	{ 36, 1581, "The Deadmines", "D", 5, 1, { 26, 24, 24 }, 
 				{ 2040, 166, 373 }, 					-- Underground Assault, The Defias Brotherhood, The Unsent Letter
 				{{"Edwin VanCleef",639}, {"Rhahk'Zor",644}, {"Sneed's Shredder",642}, {"Gilnid",1763}, {"Mr. Smite",646}, {"Captain Greenskin",647}, {"Cookie",645}}
 	},
-	{ 33, 209, "Shadowfang Keep", "D", 5, 1, { 30, 30, 25 }, 
+	{ 33, 209, "Shadowfang Keep", "D", 5, 1, { 30, 25, 25 }, 
 				{ 1013, 1014 }, -- The Book of Ur, Arugal Must Die // Deathstalkers in Shadowfang removed (inside completion)
 				{{"Archmage Arugal",4275}, {"Rethilgore",3914}, {"Razorclaw the Butcher",3886}, {"Baron Silverlaine",3887}, {"Commander Springvale",4278}, {"Odo the Blindwatcher",4279}, {"Fenrus the Devourer",4274}, {"Wolf Master Nandos",3927}}
 	},
-	{ 48, 719, "Blackfathom Deeps", "D", 5, 1, { 32, 32, 28 }, 
+	{ 48, 719, "Blackfathom Deeps", "D", 5, 1, { 32, 28, 28 }, 
 				{ 971, 1199, 6565, 6921, 1200, 6561, 6922 },		-- 1198 removed (inside completion)
 				{{"Aku'mai",4829}, {"Ghamoo-ra",4887}, {"Lady Sarevess",4831}, {"Gelihast",6243}, {"Lorgus Jett",12902}, {"Twilight Lord Kelris",4832}, {"Old Serra'kis",4830}}
 	},				
-	{ 34, 717, "The Stockade", "D", 5, 1, { 32, 32, 29 }, 
+	{ 34, 717, "The Stockade", "D", 5, 1, { 32, 29, 29 }, 
 				{ 387, 386, 378, 388, 377, 391 },
 				{{"Bazil Thredd",1716}, {"Targorr the Dread",1696}, {"Kam Deepfury",1666}, {"Hamhock",1717}, {"Dextren Ward",1663}}
 	},
-	{ 47, 491, "Razorfen Kraul", "D", 5, 1, { 38, 38, 31 }, 
+	{ 47, 491, "Razorfen Kraul", "D", 5, 1, { 38, 31, 31 }, 
 				{ 1221, 1102, 1109, 1101, 1142, 6522 },			-- 1144 removed (inside completion)
 				{{"Charlga Razorflank",4421}, {"Roogug",6168}, {"Aggem Thorncurse",4424}, {"Death Speaker Jargba",4428}, {"Overlord Ramtusk",4420}, {"Agathelos the Raging",4422}}
 	},
-	{ 90, 721, "Gnomeregan", "D", 5, 1, { 38, 38, 32 }, 
+	{ 90, 721, "Gnomeregan", "D", 5, 1, { 38, 32, 32 }, 
 				{ 2904, 2924, 2930, 2929, 2841 },		-- 2945, 2951 removed (inside completion), 2929 removed (outside quest)
 				{{"Mekgineer Thermaplugg",7800}, {"Grubbis ",7361}, {"Viscous Fallout",7079}, {"Electrocutioner 6000",6235}, {"Crowd Pummeler 9-60",6229}}
 	},
-	{ 129, 722, "Razorfen Downs", "D", 5, 1, { 46, 46, 41 }, 
+	{ 129, 722, "Razorfen Downs", "D", 5, 1, { 46, 41, 41 }, 
 				{ 3636, 3341 },								-- 3525 removed (inside completion)
 				{{"Amnennar the Coldbringer",7358}, {"Tuten'kash",7355}, {"Mordresh Fire Eye",7357}, {"Glutton",8567}}
 	},
-	{ 189, 796, "Scarlet Monastery", "D", 5, 1, { 45, 45, 44 }, 
+	{ 189, 796, "Scarlet Monastery", "D", 5, 1, { 45, 44, 44 }, 
 				{}, 
 				{} 																-- Empty boss list allows logging of bosses in the wings (do not touch!)
 	},			
-	{ 18901, 79601, "Scarlet Monastery (GY)", "D", 5, 1, { 45, 45, 44 }, 	 		-- Bit of a hack here, the 4 wings don't have a separate ID, so we fake one for them
+	{ 18901, 79601, "Scarlet Monastery (GY)", "D", 5, 1, { 45, 44, 44 }, 	 		-- Bit of a hack here, the 4 wings don't have a separate ID, so we fake one for them
 				{},																-- No quests in GY
 				{ {"Bloodmage Thalnos", 4543}, {"Interrogator Vishas", 3983} }
 	}, 
-	{ 18902, 79602, "Scarlet Monastery (Lib)", "D", 5, 1, { 45, 45, 44 }, 
+	{ 18902, 79602, "Scarlet Monastery (Lib)", "D", 5, 1, { 45, 44, 44 }, 
 				{ 1050, 1053, 1049, 1048, 1160, 1951 }, 						-- 1048+1053: kill 4 bosses needs Lib+Cath+Arm
 				{ {"Arcanist Doan", 6487}, {"Houndmaster Loksey", 3974} } 
 	}, 
-	{ 18903, 79603, "Scarlet Monastery (Cath)", "D", 5, 1, { 45, 45, 44 },
+	{ 18903, 79603, "Scarlet Monastery (Cath)", "D", 5, 1, { 45, 44, 44 },
 				{ 1053, 1048 },													-- 1048+1053: kill 4 bosses needs Lib+Cath+Arm
 				{ {"Scarlet Commander Mograine", 3976}, {"High Inquisitor Whitemane", 3977}, {"High Inquisitor Fairbanks", 4542 } } 
 	},
-	{ 18904, 79604, "Scarlet Monastery (Arm)", "D", 5, 1, { 45, 45, 44 }, 
+	{ 18904, 79604, "Scarlet Monastery (Arm)", "D", 5, 1, { 45, 44, 44 }, 
 				{ 1053, 1048 },													-- 1048+1053: kill 4 bosses needs Lib+Cath+Arm
 				{ {"Herod", 3975} } 
 	},
-	{ 70, 1137, "Uldaman", "D", 5, 1, { 51, 51, 44 }, 
+	{ 70, 1137, "Uldaman", "D", 5, 1, { 51, 44, 44 }, 
 				{ 2240, 1139, 2204 },											-- 2278 removed (inside completion)
 				{{"Archaedas",2748}, {"Revelosh",6910}, {"Ironaya",7228}, {"Obsidian Sentinel",7023}, {"Ancient Stone Keeper",7206}, {"Galgann Firehammer",7291}, {"Grimlok",4854}}
 	},
-	{ 209, 1176, "Zul'Farrak", "D", 5, 1, { 54, 54, 50 }, 
+	{ 209, 1176, "Zul'Farrak", "D", 5, 1, { 54, 50, 50 }, 
 				{ 3042, 2865, 2846, 2768, 2770, 3527, 2991, 2936 },
 				{{"Chief Ukorz Sandscalp",7267}, {"Ruuzlu",7797}, {"Antu'sul",8127}, {"Theka the Martyr",7272}, {"Witch Doctor Zum'rah",7271}, {"Nekrum Gutchewer",7796}, {"Shadowpriest Sezz'ziz",7275}, {"Sergeant Bly",7604}, {"Hydromancer Velratha",7795}}
 	},
-	{ 349, 2100, "Maraudon", "D", 5, 1, { 55, 55, 52 }, 
+	{ 349, 2100, "Maraudon", "D", 5, 1, { 55, 52, 52 }, 
 				{ 7041, 7029, 7065, 7064, 7067 },							-- 7044+7046 removed (inside completion)
 				{{"Princess Theradras",12201}, {"Noxxion",13282}, {"Razorlash",12258}, {"Lord Vyletongue",12236}, {"Celebras the Cursed",12225}, {"Landslide",12203}, {"Tinkerer Gizlock",13601}, {"Rotgrip",13596}}
 	},
-	{ 109, 1477, "The Temple of Atal'Hakkar", "D", 5, 1, { 60, 59, 54 }, 
+	{ 109, 1477, "The Temple of Atal'Hakkar", "D", 5, 1, { 60, 54, 54 }, 
 				{ 3528 },  										-- 1475, 4143, 4146, removed: tablets and haze drop outside; 3446+3373+3447 removed (inside completion)
 				{{"Shade of Eranikus",5709}, {"Atal'alarion",8580}, {"Dreamscythe",5721}, {"Weaver",5720}, {"Jammal'an the Prophet",5710}, {"Ogom the Wretched",5711}, {"Morphaz",5719}, {"Hazzas",5722}, {"Avatar of Hakkar",8443}}
 	},

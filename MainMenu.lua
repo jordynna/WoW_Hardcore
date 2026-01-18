@@ -316,6 +316,18 @@ local function DrawGeneralTab(container)
 	changelog_title:SetFont("Interface\\Addons\\Hardcore\\Media\\BreatheFire.ttf", 20, "")
 	scroll_frame:AddChild(changelog_title)
 	
+	CreateHeadingLabel("11.59b", scroll_frame)
+	CreateDescriptionLabel(
+		"- Updated TBC dungeon levels and implemented a grandfather status for dungeons that were run at max level when the required levels were higher.",
+		scroll_frame
+	)
+	
+	CreateHeadingLabel("11.58b", scroll_frame)
+	CreateDescriptionLabel(
+		"- Added compatibility with TBC Anniversary realms, including Era to TBC transfer characters.",
+		scroll_frame
+	)
+	
 	CreateHeadingLabel("11.57b", scroll_frame)
 	CreateDescriptionLabel(
 		"- Fixed Lua error related to missing Monk class color.\n- Added checks to prevent errors when extra rules are not defined.\n- Enabled tracked time to update correctly on the character screen.",
@@ -707,6 +719,8 @@ local function DrawRulesTab(container)
 		max_level_label:SetWidth(120)
 		if _G["HardcoreBuildLabel"] == "Cata" then
 			max_level_label:SetText("|c00FFFF00Cata|r")
+		elseif _G["HardcoreBuildLabel"] == "MoP" then
+			max_level_label:SetText("|c00FFFF00MoP|r")
 		else
 			max_level_label:SetText("|c00FFFF00WotLK|r")
 		end
@@ -1301,7 +1315,13 @@ local function DrawDungeonsTab(container, _hardcore_character)
 		-- Go through the complete, idle and active runs
 		local num_lines = 0
 		for i, v in pairs(_dt_runs) do
-			name_str = name_str .. v.name .. GetEntryCountString(v) .. "\n"
+			local suffix = ""
+			-- Check if run happened before Jan 17, 2026 (Grandfathered)
+			if v.start and v.start < 1768669200 and (Hardcore_Character.game_version == "TBC" or Hardcore_Character.game_version == "MoP") then
+				suffix = " |cff00ff00(*)|r" -- Adds a green (*)
+			end
+			name_str = name_str .. v.name .. suffix .. GetEntryCountString(v) .. "\n"
+
 			id_str = id_str .. GetInstanceIDString(v) .. "\n"
 			if v.level > 0 then
 				level_str = level_str .. v.level .. "\n"

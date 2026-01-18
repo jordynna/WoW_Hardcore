@@ -110,16 +110,31 @@ end
 -- This is used to see if previous runs may have been under another version of the
 -- game where the max levels were different
 
+-- [[ Dungeons.lua ]]
+
 local function DungeonTrackerGetDungeonMaxLevelAtRunTime(run)
 
-	-- If we are in cata now, but the run started before pre-patch day, we use the WotLK max level (if it was differen than Cata)
-	if _G["HardcoreBuildLabel"] == "Cata" and run.start ~= nil and _dt_db_wotlk_max_levels[ run.name ] ~= nil then
+	-- 1. EXISTING CATA CHECK (Keep this)
+	-- If we are in cata now, but the run started before pre-patch day, we use the WotLK max level
+	if _G["HardcoreBuildLabel"] == "Cata" and run.start ~= nil and _dt_db_wotlk_max_levels ~= nil and _dt_db_wotlk_max_levels[ run.name ] ~= nil then
 		if run.start < 1714482000 then			-- Wed 30 April 2024, 15:00 PDT
 			return _dt_db_wotlk_max_levels[ run.name ]
 		end
 	end
 
-	-- Default to the current version's max level if not Cata
+	-- 2. NEW GRANDFATHER CLAUSE
+	-- If we are on TBC (or MoP), and the run happened before the patch fix (Jan 17, 2026),
+	-- we return 1000 (Unlimited) to ensure they pass validation.
+	-- Timestamp: 1768694400 is roughly Jan 18, 2026 00:00 UTC
+	local grandfather_cutoff = 1768694400 
+	
+	if (Hardcore_Character.game_version == "TBC" or Hardcore_Character.game_version == "MoP") and run.start ~= nil then
+		if run.start < grandfather_cutoff then
+			return 1000 -- Treats the dungeon as having "No Max Level" for runs done before today
+		end
+	end
+
+	-- Default to the current version's max level for all new runs
 	return DungeonTrackerGetDungeonMaxLevel(run.name)
 end
 
@@ -205,7 +220,7 @@ local function DungeonTrackerFindMissingRunsFromQuests()
 	if Hardcore_Character.game_version == "Era" or Hardcore_Character.game_version == "SoM" then
 		game_version_index = 1
 		game_version_max_level = 60
-	elseif Hardcore_Character.game_version == "WotLK" or Hardcore_Character.game_version == "Cata" then
+	elseif Hardcore_Character.game_version == "WotLK" or Hardcore_Character.game_version == "Cata" or Hardcore_Character.game_version == "MoP" then
 		game_version_index = 2
 		game_version_max_level = 80
 	else
