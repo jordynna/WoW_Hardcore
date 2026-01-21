@@ -732,7 +732,7 @@ local function DungeonTrackerSendPulse(now)
 		end
 		local data = name
 			.. COMM_FIELD_DELIM
-			.. GetAddOnMetadata("Hardcore", "Version")
+			.. C_AddOns.GetAddOnMetadata("Hardcore", "Version")
 			.. COMM_FIELD_DELIM
 			.. now
 			.. COMM_FIELD_DELIM
@@ -1111,7 +1111,7 @@ local function DungeonTrackerCheckVersions()
 			for i,v in ipairs( party ) do
 				if v == UnitName("player") then
 					local my_status = Hardcore:GetCleanVerificationStatus()
-					message = message .. v .. ":" .. GetAddOnMetadata("Hardcore", "Version") .. " [" .. my_status .. "]"
+					message = message .. v .. ":" .. C_AddOns.GetAddOnMetadata("Hardcore", "Version") .. " [" .. my_status .. "]"
 				else
 					message = message .. v .. ":"
 					if dt_party_member_addon_version[ v ] ~= nil then

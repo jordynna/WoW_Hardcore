@@ -828,37 +828,42 @@ function Hardcore:Startup()
         end)
     end
 
-	if not Hardcore.Original_ChatFrame1_AddMessage then
-		Hardcore.Original_ChatFrame1_AddMessage = ChatFrame1.AddMessage
-	end
+    -- Hook ALL Chat Frames (1 through 10) to catch custom tabs
+    for i = 1, 10 do
+        local frameName = "ChatFrame" .. i
+        local frame = _G[frameName]
+        
+        if frame then
+            if not Hardcore.Original_AddMessage_Hooks then
+                Hardcore.Original_AddMessage_Hooks = {}
+            end
+            
+            -- Save the original function if we haven't already
+            if not Hardcore.Original_AddMessage_Hooks[frame] then
+                Hardcore.Original_AddMessage_Hooks[frame] = frame.AddMessage
+            end
 
-	ChatFrame1.AddMessage = function(self, text, ...)
-		-- Safety check: ensure text exists and buffer is active
-		if text and HIDE_RTP_CHAT_MSG_BUFFER > 0 then
-			
-			-- Define the patterns to look for (strip the %s variable)
-			local totalPrefix = string.gsub(TIME_PLAYED_TOTAL, "%%s", "")
-			local levelPrefix = string.gsub(TIME_PLAYED_LEVEL, "%%s", "")
-			
-			-- Check for "Total time played"
-			if string.find(text, totalPrefix, 1, true) then
-				-- Return without calling original function -> Message Hidden
-				return 
-			end
+            -- Apply the new hook
+            frame.AddMessage = function(self, text, ...)
+                -- Define patterns to check
+                local totalPrefix = string.gsub(TIME_PLAYED_TOTAL or "Total time played", "%%s", "")
+                local levelPrefix = string.gsub(TIME_PLAYED_LEVEL or "Time played this level", "%%s", "")
+                
+                -- Check if the text matches the "Time Played" format
+                if text and (string.find(text, totalPrefix, 1, true) or string.find(text, levelPrefix, 1, true)) then
+                    -- If it matches, ONLY allow it if the user manually asked for it
+                    if not Hardcore.UserRequestedPlayed then
+                        return -- BLOCK IT
+                    end
+                end
 
-			-- Check for "Time played this level"
-			if string.find(text, levelPrefix, 1, true) then
-				-- Decrement buffer
-				HIDE_RTP_CHAT_MSG_BUFFER = HIDE_RTP_CHAT_MSG_BUFFER - 1
-				if HIDE_RTP_CHAT_MSG_BUFFER < 0 then HIDE_RTP_CHAT_MSG_BUFFER = 0 end
-				
-				return -- Message Hidden
-			end
-		end
-
-		-- If not hidden, pass it to the real chat frame
-		return Hardcore.Original_ChatFrame1_AddMessage(self, text, ...)
-	end
+                -- Otherwise, pass it through to the original handler
+                if Hardcore.Original_AddMessage_Hooks[self] then
+                    return Hardcore.Original_AddMessage_Hooks[self](self, text, ...)
+                end
+            end
+        end
+    end
 
 	-- event handling helper
 	self:SetScript("OnEvent", function(self, event, ...)
@@ -1009,32 +1014,20 @@ function Hardcore:PLAYER_LOGIN()
 	-- For dungeon tracking targetting of door npcs
 	--self:RegisterEvent("ADDON_ACTION_FORBIDDEN")
 	
-	ChatFrame_AddMessageEventFilter("CHAT_MSG_SYSTEM", function(frame, event, message, ...)
-        
-        -- 1. Check if this is a "Time Played" message
-        -- We clean the global strings to remove the %s variable so we can match the text
+	--[[ChatFrame_AddMessageEventFilter("CHAT_MSG_SYSTEM", function(frame, event, message, ...)
         local totalPrefix = string.gsub(TIME_PLAYED_TOTAL or "Total time played", "%%s", "")
         local levelPrefix = string.gsub(TIME_PLAYED_LEVEL or "Time played this level", "%%s", "")
         
-        local isTimePlayedMsg = false
-        if string.find(message, totalPrefix, 1, true) or string.find(message, levelPrefix, 1, true) then
-            isTimePlayedMsg = true
-        end
-
-        -- 2. Logic: Hide it if it's automated, Show it if it's manual
-        if isTimePlayedMsg then
-            if Hardcore.UserRequestedPlayed then
-                -- The user explicitly asked for this. Let them see it.
-                -- (We don't reset the flag here immediately because the "Level" message comes right after the "Total" message)
-                return false, message, ...
-            else
-                -- The user did NOT type /played. This is spam from our addon loop. Hide it.
+        -- If this is a time played message...
+        if (string.find(message, totalPrefix, 1, true) or string.find(message, levelPrefix, 1, true)) then
+            -- ...and the user didn't ask for it -> BLOCK IT (return true)
+            if not Hardcore.UserRequestedPlayed then
                 return true 
             end
         end
         
         return false, message, ...
-    end)
+    end)]]--
 
 	Hardcore:InitializeSavedVariables()
 	Hardcore:InitializeSettingsSavedVariables()
@@ -2110,34 +2103,18 @@ end
 
 local Cached_ChatFrame_DisplayTimePlayed = ChatFrame_DisplayTimePlayed
 ChatFrame_DisplayTimePlayed = function(...)
-    -- Debug: Check what the buffer sees when the game tries to print the message
-    if debug then
-        Hardcore:Debug("Game attempted to display TimePlayed. Current Buffer: " .. tostring(HIDE_RTP_CHAT_MSG_BUFFER))
+    -- If the user didn't type /played manually, hide the output.
+    if not Hardcore.UserRequestedPlayed then
+        return 
     end
 
-	if HIDE_RTP_CHAT_MSG_BUFFER == 1 then
-		HIDE_RTP_CHAT_MSG_BUFFER = HIDE_RTP_CHAT_MSG_BUFFER - 1
-        if debug then
-            Hardcore:Debug("Message Hidden. New Buffer: " .. tostring(HIDE_RTP_CHAT_MSG_BUFFER))
-        end
-        return
-    elseif HIDE_RTP_CHAT_MSG_BUFFER == 2 then
-        HIDE_RTP_CHAT_MSG_BUFFER = HIDE_RTP_CHAT_MSG_BUFFER - 2
-        if debug then
-            Hardcore:Debug("Messages Hidden. New Buffer: " .. tostring(HIDE_RTP_CHAT_MSG_BUFFER))
-        end
-        return
-    end
-
-    -- If buffer is 0, we let the message through
+    -- If the user asked for it, let it through.
     return Cached_ChatFrame_DisplayTimePlayed(...)
 end
 
 function Hardcore:RequestTimePlayed()
-	HIDE_RTP_CHAT_MSG_BUFFER = HIDE_RTP_CHAT_MSG_BUFFER + 1
-	if HIDE_RTP_CHAT_MSG_BUFFER > HIDE_RTP_CHAT_MSG_BUFFER_MAX then
-		HIDE_RTP_CHAT_MSG_BUFFER = HIDE_RTP_CHAT_MSG_BUFFER_MAX
-	end
+    -- We simply request the time. The display hook will handle the blocking
+    -- because Hardcore.UserRequestedPlayed will be false.
 	RequestTimePlayed()
 end
 

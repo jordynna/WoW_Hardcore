@@ -1,11 +1,11 @@
 
 ## Interface: 11507
-## Title: Hardcore 0.11.59b
+## Title: Hardcore 0.11.59c
 ## Notes: Supports Classic Hardcore
 ## Author: The Classic Hardcore team, Molikar (Sean Kennedy)
 ## X-License: All Rights Reserved
 ## X-Category: Leveling,Guild
-## Version: 0.11.59b
+## Version: 0.11.59c
 
 
 ## DefaultState: enabled
