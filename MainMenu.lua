@@ -316,6 +316,18 @@ local function DrawGeneralTab(container)
 	changelog_title:SetFont("Interface\\Addons\\Hardcore\\Media\\BreatheFire.ttf", 20, "")
 	scroll_frame:AddChild(changelog_title)
 	
+	CreateHeadingLabel("11.60", scroll_frame)
+	CreateDescriptionLabel(
+		"- Store mount prohibition update",
+		scroll_frame
+	)
+	
+	CreateHeadingLabel("11.59c", scroll_frame)
+	CreateDescriptionLabel(
+		"- Hotfix for dungeon group lua errors.",
+		scroll_frame
+	)
+	
 	CreateHeadingLabel("11.59b", scroll_frame)
 	CreateDescriptionLabel(
 		"- Updated TBC dungeon levels and implemented a grandfather status for dungeons that were run at max level when the required levels were higher.",
@@ -1317,7 +1329,7 @@ local function DrawDungeonsTab(container, _hardcore_character)
 		for i, v in pairs(_dt_runs) do
 			local suffix = ""
 			-- Check if run happened before Jan 17, 2026 (Grandfathered)
-			if v.start and v.start < 1768669200 and (Hardcore_Character.game_version == "TBC" or Hardcore_Character.game_version == "MoP") then
+			if v.start and v.start < 1768694400 and (Hardcore_Character.game_version == "TBC" or Hardcore_Character.game_version == "MoP") then
 				suffix = " |cff00ff00(*)|r" -- Adds a green (*)
 			end
 			name_str = name_str .. v.name .. suffix .. GetEntryCountString(v) .. "\n"

@@ -149,6 +149,13 @@ local bubble_hearth_vars = {
 	light_of_elune_name = "Light of Elune",
 }
 
+local STORE_MOUNT_ITEMS = {
+    [260759] = true,
+    [260438] = true,
+    [184865] = true,
+}
+local STORE_MOUNT_SPELL_NAMES = {}
+
 -- Ranks
 local hc_id2rank = {
 	["1"] = "officer",
@@ -407,6 +414,7 @@ Hardcore_Alert_Frame:SetScale(0.7)
 -- the big frame object for our addon
 local Hardcore = CreateFrame("Frame", "Hardcore", nil, "BackdropTemplate")
 Hardcore.ALERT_STYLES = ALERT_STYLES
+Hardcore.STORE_MOUNT_SPELL_NAMES = STORE_MOUNT_SPELL_NAMES
 
 Hardcore_Frame:ApplyBackdrop()
 
@@ -828,37 +836,42 @@ function Hardcore:Startup()
         end)
     end
 
-	if not Hardcore.Original_ChatFrame1_AddMessage then
-		Hardcore.Original_ChatFrame1_AddMessage = ChatFrame1.AddMessage
-	end
+    -- Hook ALL Chat Frames (1 through 10) to catch custom tabs
+    for i = 1, 10 do
+        local frameName = "ChatFrame" .. i
+        local frame = _G[frameName]
+        
+        if frame then
+            if not Hardcore.Original_AddMessage_Hooks then
+                Hardcore.Original_AddMessage_Hooks = {}
+            end
+            
+            -- Save the original function if we haven't already
+            if not Hardcore.Original_AddMessage_Hooks[frame] then
+                Hardcore.Original_AddMessage_Hooks[frame] = frame.AddMessage
+            end
 
-	ChatFrame1.AddMessage = function(self, text, ...)
-		-- Safety check: ensure text exists and buffer is active
-		if text and HIDE_RTP_CHAT_MSG_BUFFER > 0 then
-			
-			-- Define the patterns to look for (strip the %s variable)
-			local totalPrefix = string.gsub(TIME_PLAYED_TOTAL, "%%s", "")
-			local levelPrefix = string.gsub(TIME_PLAYED_LEVEL, "%%s", "")
-			
-			-- Check for "Total time played"
-			if string.find(text, totalPrefix, 1, true) then
-				-- Return without calling original function -> Message Hidden
-				return 
-			end
+            -- Apply the new hook
+            frame.AddMessage = function(self, text, ...)
+                -- Define patterns to check
+                local totalPrefix = string.gsub(TIME_PLAYED_TOTAL or "Total time played", "%%s", "")
+                local levelPrefix = string.gsub(TIME_PLAYED_LEVEL or "Time played this level", "%%s", "")
+                
+                -- Check if the text matches the "Time Played" format
+                if text and (string.find(text, totalPrefix, 1, true) or string.find(text, levelPrefix, 1, true)) then
+                    -- If it matches, ONLY allow it if the user manually asked for it
+                    if not Hardcore.UserRequestedPlayed then
+                        return -- BLOCK IT
+                    end
+                end
 
-			-- Check for "Time played this level"
-			if string.find(text, levelPrefix, 1, true) then
-				-- Decrement buffer
-				HIDE_RTP_CHAT_MSG_BUFFER = HIDE_RTP_CHAT_MSG_BUFFER - 1
-				if HIDE_RTP_CHAT_MSG_BUFFER < 0 then HIDE_RTP_CHAT_MSG_BUFFER = 0 end
-				
-				return -- Message Hidden
-			end
-		end
-
-		-- If not hidden, pass it to the real chat frame
-		return Hardcore.Original_ChatFrame1_AddMessage(self, text, ...)
-	end
+                -- Otherwise, pass it through to the original handler
+                if Hardcore.Original_AddMessage_Hooks[self] then
+                    return Hardcore.Original_AddMessage_Hooks[self](self, text, ...)
+                end
+            end
+        end
+    end
 
 	-- event handling helper
 	self:SetScript("OnEvent", function(self, event, ...)
@@ -997,6 +1010,12 @@ function Hardcore:PLAYER_LOGIN()
 	self:RegisterEvent("UNIT_SPELLCAST_START")
 	self:RegisterEvent("UNIT_SPELLCAST_STOP")
 	self:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
+	
+	self:RegisterEvent("CHAT_MSG_LOOT")
+	self:RegisterEvent("GET_ITEM_INFO_RECEIVED")
+
+	-- Request info immediately so server sends it
+	for id, _ in pairs(STORE_MOUNT_ITEMS) do GetItemInfo(id) end
 
 	-- For inspecting other player's status
 	-- INSPECT READY DISABLED FOR CATA PRE-PATCH
@@ -1009,32 +1028,20 @@ function Hardcore:PLAYER_LOGIN()
 	-- For dungeon tracking targetting of door npcs
 	--self:RegisterEvent("ADDON_ACTION_FORBIDDEN")
 	
-	ChatFrame_AddMessageEventFilter("CHAT_MSG_SYSTEM", function(frame, event, message, ...)
-        
-        -- 1. Check if this is a "Time Played" message
-        -- We clean the global strings to remove the %s variable so we can match the text
+	--[[ChatFrame_AddMessageEventFilter("CHAT_MSG_SYSTEM", function(frame, event, message, ...)
         local totalPrefix = string.gsub(TIME_PLAYED_TOTAL or "Total time played", "%%s", "")
         local levelPrefix = string.gsub(TIME_PLAYED_LEVEL or "Time played this level", "%%s", "")
         
-        local isTimePlayedMsg = false
-        if string.find(message, totalPrefix, 1, true) or string.find(message, levelPrefix, 1, true) then
-            isTimePlayedMsg = true
-        end
-
-        -- 2. Logic: Hide it if it's automated, Show it if it's manual
-        if isTimePlayedMsg then
-            if Hardcore.UserRequestedPlayed then
-                -- The user explicitly asked for this. Let them see it.
-                -- (We don't reset the flag here immediately because the "Level" message comes right after the "Total" message)
-                return false, message, ...
-            else
-                -- The user did NOT type /played. This is spam from our addon loop. Hide it.
+        -- If this is a time played message...
+        if (string.find(message, totalPrefix, 1, true) or string.find(message, levelPrefix, 1, true)) then
+            -- ...and the user didn't ask for it -> BLOCK IT (return true)
+            if not Hardcore.UserRequestedPlayed then
                 return true 
             end
         end
         
         return false, message, ...
-    end)
+    end)]]--
 
 	Hardcore:InitializeSavedVariables()
 	Hardcore:InitializeSettingsSavedVariables()
@@ -1223,6 +1230,21 @@ function Hardcore:PLAYER_LOGIN()
 
 	-- Store some basic info that helps interpretation of the data file
 	Hardcore_StoreCharacterInfo()
+end
+
+function Hardcore:GET_ITEM_INFO_RECEIVED(itemID)
+    if STORE_MOUNT_ITEMS[itemID] then
+        local spellName = GetItemSpell(itemID)
+        if spellName then STORE_MOUNT_SPELL_NAMES[spellName] = true end
+    end
+end
+
+function Hardcore:CHAT_MSG_LOOT(message)
+    local itemID = tonumber(message:match("item:(%d+)"))
+    if itemID and STORE_MOUNT_ITEMS[itemID] then
+        Hardcore:Print("|cFFFF0000WARNING:|r Store Mount looted. DO NOT USE or you will FAIL.")
+        Hardcore:ShowAlertFrame(Hardcore.ALERT_STYLES.hc_red, "WARNING: Store Mount Detected.\nDO NOT USE or you will FAIL.")
+    end
 end
 
 function Hardcore:PLAYER_LOGOUT()
@@ -1426,6 +1448,23 @@ end
 
 function Hardcore:UNIT_SPELLCAST_SUCCEEDED(...)
 	local unit, _, spell_id, _, _ = ...
+	if unit == "player" then
+        local spellName = GetSpellInfo(spell_id)
+        if spellName and STORE_MOUNT_SPELL_NAMES[spellName] then
+            -- 1. Fail the run via Bubble Hearth bucket (secured by Security.lua checksum)
+            table.insert(Hardcore_Character.bubble_hearth_incidents, {
+                start_cast = date("%m/%d/%y %H:%M:%S"),
+                aura_type = "STORE MOUNT: " .. spellName, -- Clearly labeled for moderators
+                guid = PLAYER_GUID
+            })
+            Hardcore_StoreChecksum() -- Immediately secure the failure
+
+            -- 2. Visual/Chat Alerts
+            Hardcore:Print("|cFFFF0000FAILURE:|r Prohibited Store Mount used ("..spellName..").")
+            Hardcore:ShowAlertFrame(Hardcore.ALERT_STYLES.death, "Hardcore Challenge FAILED\nReason: Store Mount Used")
+            SendChatMessage(PLAYER_NAME .. " failed HC by using a Store Mount: " .. spellName, "GUILD")
+        end
+    end
 	-- 8690 is hearth spellid
 	if STARTED_BUBBLE_HEARTH_INFO ~= nil then
 		if unit == "player" and spell_id == bubble_hearth_vars.spell_id then
@@ -2110,34 +2149,18 @@ end
 
 local Cached_ChatFrame_DisplayTimePlayed = ChatFrame_DisplayTimePlayed
 ChatFrame_DisplayTimePlayed = function(...)
-    -- Debug: Check what the buffer sees when the game tries to print the message
-    if debug then
-        Hardcore:Debug("Game attempted to display TimePlayed. Current Buffer: " .. tostring(HIDE_RTP_CHAT_MSG_BUFFER))
+    -- If the user didn't type /played manually, hide the output.
+    if not Hardcore.UserRequestedPlayed then
+        return 
     end
 
-	if HIDE_RTP_CHAT_MSG_BUFFER == 1 then
-		HIDE_RTP_CHAT_MSG_BUFFER = HIDE_RTP_CHAT_MSG_BUFFER - 1
-        if debug then
-            Hardcore:Debug("Message Hidden. New Buffer: " .. tostring(HIDE_RTP_CHAT_MSG_BUFFER))
-        end
-        return
-    elseif HIDE_RTP_CHAT_MSG_BUFFER == 2 then
-        HIDE_RTP_CHAT_MSG_BUFFER = HIDE_RTP_CHAT_MSG_BUFFER - 2
-        if debug then
-            Hardcore:Debug("Messages Hidden. New Buffer: " .. tostring(HIDE_RTP_CHAT_MSG_BUFFER))
-        end
-        return
-    end
-
-    -- If buffer is 0, we let the message through
+    -- If the user asked for it, let it through.
     return Cached_ChatFrame_DisplayTimePlayed(...)
 end
 
 function Hardcore:RequestTimePlayed()
-	HIDE_RTP_CHAT_MSG_BUFFER = HIDE_RTP_CHAT_MSG_BUFFER + 1
-	if HIDE_RTP_CHAT_MSG_BUFFER > HIDE_RTP_CHAT_MSG_BUFFER_MAX then
-		HIDE_RTP_CHAT_MSG_BUFFER = HIDE_RTP_CHAT_MSG_BUFFER_MAX
-	end
+    -- We simply request the time. The display hook will handle the blocking
+    -- because Hardcore.UserRequestedPlayed will be false.
 	RequestTimePlayed()
 end
 
@@ -3414,7 +3437,22 @@ function Hardcore:GenerateVerificationStatusStrings()
 	end
 
 	if numBubs > 0 then
-		table.insert(reds, "bub-hrth=" .. numBubs)
+		-- Check if any bubble hearth incident is actually a store mount violation
+		local isStoreMount = false
+		if Hardcore_Character.bubble_hearth_incidents then
+			for _, v in ipairs(Hardcore_Character.bubble_hearth_incidents) do
+				if v.aura_type and string.find(v.aura_type, "STORE MOUNT") then
+					isStoreMount = true
+					break
+				end
+			end
+		end
+
+		if isStoreMount then
+			table.insert(reds, "FAIL(StoreMount)")
+		else
+			table.insert(reds, "bub-hrth=" .. numBubs)
+		end
 	end
 
 	if numRepRuns > 0 then
