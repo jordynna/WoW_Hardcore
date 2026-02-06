@@ -156,6 +156,12 @@ local STORE_MOUNT_ITEMS = {
 }
 local STORE_MOUNT_SPELL_NAMES = {}
 
+local STORE_MOUNT_SPELLS = {
+    [1266345] = "Cerulean Spell-Weaver",
+    [348459]  = "Reawakened Phase-Hunter",
+    [1266866] = "Starshard Netherdrake",
+}
+
 -- Ranks
 local hc_id2rank = {
 	["1"] = "officer",
@@ -1447,22 +1453,24 @@ function Hardcore:UNIT_SPELLCAST_STOP(...)
 end
 
 function Hardcore:UNIT_SPELLCAST_SUCCEEDED(...)
-	local unit, _, spell_id, _, _ = ...
 	if unit == "player" then
-        local spellName = GetSpellInfo(spell_id)
-        if spellName and STORE_MOUNT_SPELL_NAMES[spellName] then
+        -- Use the Spell ID directly for 100% accuracy
+        if STORE_MOUNT_SPELLS[spell_id] then
+            local mountName = STORE_MOUNT_SPELLS[spell_id]
+            
             -- 1. Fail the run via Bubble Hearth bucket (secured by Security.lua checksum)
             table.insert(Hardcore_Character.bubble_hearth_incidents, {
                 start_cast = date("%m/%d/%y %H:%M:%S"),
-                aura_type = "STORE MOUNT: " .. spellName, -- Clearly labeled for moderators
+                aura_type = "STORE MOUNT: " .. mountName, -- Clearly labeled for moderators
                 guid = PLAYER_GUID
             })
             Hardcore_StoreChecksum() -- Immediately secure the failure
 
             -- 2. Visual/Chat Alerts
-            Hardcore:Print("|cFFFF0000FAILURE:|r Prohibited Store Mount used ("..spellName..").")
+            Hardcore:Print("|cFFFF0000FAILURE:|r Prohibited Store Mount used ("..mountName..").")
             Hardcore:ShowAlertFrame(Hardcore.ALERT_STYLES.death, "Hardcore Challenge FAILED\nReason: Store Mount Used")
-            SendChatMessage(PLAYER_NAME .. " failed HC by using a Store Mount: " .. spellName, "GUILD")
+            SendChatMessage(PLAYER_NAME .. " failed HC by using a Store Mount: " .. mountName, "GUILD")
+            return -- Exit so we don't process standard bubble hearth logic
         end
     end
 	-- 8690 is hearth spellid
