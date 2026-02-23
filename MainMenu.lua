@@ -316,6 +316,18 @@ local function DrawGeneralTab(container)
 	changelog_title:SetFont("Interface\\Addons\\Hardcore\\Media\\BreatheFire.ttf", 20, "")
 	scroll_frame:AddChild(changelog_title)
 	
+	CreateHeadingLabel("11.60a", scroll_frame)
+	CreateDescriptionLabel(
+		"- Hotfix for duo achievement lua errors.",
+		scroll_frame
+	)
+	
+	CreateHeadingLabel("11.60", scroll_frame)
+	CreateDescriptionLabel(
+		"- Store mount prohibition update",
+		scroll_frame
+	)
+	
 	CreateHeadingLabel("11.59c", scroll_frame)
 	CreateDescriptionLabel(
 		"- Hotfix for dungeon group lua errors.",

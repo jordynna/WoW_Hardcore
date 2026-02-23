@@ -149,6 +149,19 @@ local bubble_hearth_vars = {
 	light_of_elune_name = "Light of Elune",
 }
 
+local STORE_MOUNT_ITEMS = {
+    [260759] = true,
+    [260438] = true,
+    [184865] = true,
+}
+local STORE_MOUNT_SPELL_NAMES = {}
+
+local STORE_MOUNT_SPELLS = {
+    [1266345] = "Cerulean Spell-Weaver",
+    [348459]  = "Reawakened Phase-Hunter",
+    [1266866] = "Starshard Netherdrake",
+}
+
 -- Ranks
 local hc_id2rank = {
 	["1"] = "officer",
@@ -407,6 +420,7 @@ Hardcore_Alert_Frame:SetScale(0.7)
 -- the big frame object for our addon
 local Hardcore = CreateFrame("Frame", "Hardcore", nil, "BackdropTemplate")
 Hardcore.ALERT_STYLES = ALERT_STYLES
+Hardcore.STORE_MOUNT_SPELL_NAMES = STORE_MOUNT_SPELL_NAMES
 
 Hardcore_Frame:ApplyBackdrop()
 
@@ -1002,6 +1016,12 @@ function Hardcore:PLAYER_LOGIN()
 	self:RegisterEvent("UNIT_SPELLCAST_START")
 	self:RegisterEvent("UNIT_SPELLCAST_STOP")
 	self:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
+	
+	self:RegisterEvent("CHAT_MSG_LOOT")
+	self:RegisterEvent("GET_ITEM_INFO_RECEIVED")
+
+	-- Request info immediately so server sends it
+	for id, _ in pairs(STORE_MOUNT_ITEMS) do GetItemInfo(id) end
 
 	-- For inspecting other player's status
 	-- INSPECT READY DISABLED FOR CATA PRE-PATCH
@@ -1218,6 +1238,21 @@ function Hardcore:PLAYER_LOGIN()
 	Hardcore_StoreCharacterInfo()
 end
 
+function Hardcore:GET_ITEM_INFO_RECEIVED(itemID)
+    if STORE_MOUNT_ITEMS[itemID] then
+        local spellName = GetItemSpell(itemID)
+        if spellName then STORE_MOUNT_SPELL_NAMES[spellName] = true end
+    end
+end
+
+function Hardcore:CHAT_MSG_LOOT(message)
+    local itemID = tonumber(message:match("item:(%d+)"))
+    if itemID and STORE_MOUNT_ITEMS[itemID] then
+        Hardcore:Print("|cFFFF0000WARNING:|r Store Mount looted. DO NOT USE or you will FAIL.")
+        Hardcore:ShowAlertFrame(Hardcore.ALERT_STYLES.hc_red, "WARNING: Store Mount Detected.\nDO NOT USE or you will FAIL.")
+    end
+end
+
 function Hardcore:PLAYER_LOGOUT()
 	-- Stop further updates to the played time and tracked time, don't want them
 	-- changing after the checksum is stored
@@ -1418,7 +1453,26 @@ function Hardcore:UNIT_SPELLCAST_STOP(...)
 end
 
 function Hardcore:UNIT_SPELLCAST_SUCCEEDED(...)
-	local unit, _, spell_id, _, _ = ...
+	if unit == "player" then
+        -- Use the Spell ID directly for 100% accuracy
+        if STORE_MOUNT_SPELLS[spell_id] then
+            local mountName = STORE_MOUNT_SPELLS[spell_id]
+            
+            -- 1. Fail the run via Bubble Hearth bucket (secured by Security.lua checksum)
+            table.insert(Hardcore_Character.bubble_hearth_incidents, {
+                start_cast = date("%m/%d/%y %H:%M:%S"),
+                aura_type = "STORE MOUNT: " .. mountName, -- Clearly labeled for moderators
+                guid = PLAYER_GUID
+            })
+            Hardcore_StoreChecksum() -- Immediately secure the failure
+
+            -- 2. Visual/Chat Alerts
+            Hardcore:Print("|cFFFF0000FAILURE:|r Prohibited Store Mount used ("..mountName..").")
+            Hardcore:ShowAlertFrame(Hardcore.ALERT_STYLES.death, "Hardcore Challenge FAILED\nReason: Store Mount Used")
+            SendChatMessage(PLAYER_NAME .. " failed HC by using a Store Mount: " .. mountName, "GUILD")
+            return -- Exit so we don't process standard bubble hearth logic
+        end
+    end
 	-- 8690 is hearth spellid
 	if STARTED_BUBBLE_HEARTH_INFO ~= nil then
 		if unit == "player" and spell_id == bubble_hearth_vars.spell_id then
@@ -3391,7 +3445,22 @@ function Hardcore:GenerateVerificationStatusStrings()
 	end
 
 	if numBubs > 0 then
-		table.insert(reds, "bub-hrth=" .. numBubs)
+		-- Check if any bubble hearth incident is actually a store mount violation
+		local isStoreMount = false
+		if Hardcore_Character.bubble_hearth_incidents then
+			for _, v in ipairs(Hardcore_Character.bubble_hearth_incidents) do
+				if v.aura_type and string.find(v.aura_type, "STORE MOUNT") then
+					isStoreMount = true
+					break
+				end
+			end
+		end
+
+		if isStoreMount then
+			table.insert(reds, "FAIL(StoreMount)")
+		else
+			table.insert(reds, "bub-hrth=" .. numBubs)
+		end
 	end
 
 	if numRepRuns > 0 then

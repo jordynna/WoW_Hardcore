@@ -3,7 +3,8 @@ local imp_master_achievement = CreateFrame("Frame")
 _G.achievements.ImpMaster = imp_master_achievement
 
 local blacklist_spells = {
-	"Summon Succcubus",
+	"Summon Succubus",
+	"Summon Incubus",
 	"Summon Voidwalker",
 	"Summon Felhunter",
 }
