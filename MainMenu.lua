@@ -316,6 +316,12 @@ local function DrawGeneralTab(container)
 	changelog_title:SetFont("Interface\\Addons\\Hardcore\\Media\\BreatheFire.ttf", 20, "")
 	scroll_frame:AddChild(changelog_title)
 	
+	CreateHeadingLabel("11.60b", scroll_frame)
+	CreateDescriptionLabel(
+		"- Updated dungeon warnings for max-level characters. Fixed some issues with achievements not working correctly.",
+		scroll_frame
+	)
+	
 	CreateHeadingLabel("11.60a", scroll_frame)
 	CreateDescriptionLabel(
 		"- Hotfix for duo achievement lua errors.",
