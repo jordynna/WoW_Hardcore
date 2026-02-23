@@ -318,7 +318,7 @@ local function DrawGeneralTab(container)
 	
 	CreateHeadingLabel("11.60b", scroll_frame)
 	CreateDescriptionLabel(
-		"- Updated dungeon warnings for max-level characters. Fixed some issues with achievements not working correctly.",
+		"- Silenced dungeon warnings for max-level characters; achievement syntax errors fixed.",
 		scroll_frame
 	)
 	
