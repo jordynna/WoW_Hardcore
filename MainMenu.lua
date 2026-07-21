@@ -316,6 +316,18 @@ local function DrawGeneralTab(container)
 	changelog_title:SetFont("Interface\\Addons\\Hardcore\\Media\\BreatheFire.ttf", 20, "")
 	scroll_frame:AddChild(changelog_title)
 	
+	CreateHeadingLabel("11.60d", scroll_frame)
+	CreateDescriptionLabel(
+		"- Updated Era version.",
+		scroll_frame
+	)
+	
+	CreateHeadingLabel("11.60c", scroll_frame)
+	CreateDescriptionLabel(
+		"- Updated TBC version.",
+		scroll_frame
+	)
+	
 	CreateHeadingLabel("11.60b", scroll_frame)
 	CreateDescriptionLabel(
 		"- Silenced dungeon warnings for max-level characters; achievement syntax errors fixed.",

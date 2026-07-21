@@ -319,7 +319,7 @@ local displaylist = Hardcore_Settings.level_list
 local icon = nil
 
 local locale = GetLocale()
-hardcore_locale_supported_font = nil
+hardcore_locale_supported_font = "Fonts\\FRIZQT__.TTF"
 local non_english_locales = {
 	koKR = 1,
 	zhCN = 1,
@@ -1056,12 +1056,6 @@ function Hardcore:PLAYER_LOGIN()
 
 	-- different guid means new character with the same name OR Era->TBC Transfer
 	if Hardcore_Character.guid ~= PLAYER_GUID then
-        -- DEBUG START
-        Hardcore:Print("|cff00FFFF[DEBUG] GUID Mismatch Detected!|r")
-        Hardcore:Print("   Stored GUID (Old): " .. tostring(Hardcore_Character.guid))
-        Hardcore:Print("   Player GUID (New): " .. tostring(PLAYER_GUID))
-        Hardcore:Print("   Stored Game Version: " .. tostring(Hardcore_Character.game_version))
-        -- DEBUG END
 		
 		-- 1. Security Hash Check
 		-- Hardcore_VerifyChecksum() runs the check but returns nil. 
@@ -1090,11 +1084,6 @@ function Hardcore:PLAYER_LOGIN()
 			Hardcore.pending_transfer_verification = true
 			
 		else
-            -- DEBUG START
-            Hardcore:Print("|cffFF0000[DEBUG] Migration Logic Failed.|r")
-            if not isFileAuthentic then Hardcore:Print("   Reason: File Tampered/Checksum Failed (Status: " .. tostring(securityStatus) .. ")") end
-            if not isFromEra then Hardcore:Print("   Reason: Not an Era/SoM file (Version: " .. tostring(Hardcore_Character.game_version) .. ")") end
-            -- DEBUG END
 
 			-- Hash failed, or not from Era. Treat as new character.
 			Hardcore:Print("New character detected (or file security failed). Resetting data.")
@@ -1876,13 +1865,6 @@ function Hardcore:TIME_PLAYED_MSG(...)
 		local totalTimePlayed, _ = ...
 		local storedTime = Hardcore_Character.time_played or 0
 		local timeDiff = math.abs(totalTimePlayed - storedTime)
-        
-        -- DEBUG START
-        Hardcore:Print("|cff00FFFF[DEBUG] Time Verification Running...|r")
-        Hardcore:Print("   Server Time: " .. tostring(totalTimePlayed))
-        Hardcore:Print("   Stored Time: " .. tostring(storedTime))
-        Hardcore:Print("   Difference: " .. tostring(timeDiff) .. " seconds")
-        -- DEBUG END
 
 		-- Tolerance Window: 15 Minutes (900 seconds) to account for minor sync differences
 		if timeDiff < 900 then

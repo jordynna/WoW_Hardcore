@@ -1,11 +1,10 @@
-
-## Interface: 20505
-## Title: Hardcore 0.11.60b
+## Interface: 20506
+## Title: Hardcore 0.11.60d
 ## Notes: Supports TBC Hardcore
 ## Author: The Classic Hardcore team, Molikar (Sean Kennedy)
 ## X-License: All Rights Reserved
 ## X-Category: Leveling,Guild
-## Version: 0.11.60b
+## Version: 0.11.60d
 
 ## IconTexture: Interface\AddOns\Hardcore\Media\wowhc-emblem-white-red.blp
 ## DefaultState: enabled
