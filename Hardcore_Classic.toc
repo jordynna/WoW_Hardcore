@@ -1,13 +1,13 @@
 
-## Interface: 11507
-## Title: Hardcore 0.11.59b
+## Interface: 11509
+## Title: Hardcore 0.11.60d
 ## Notes: Supports Classic Hardcore
 ## Author: The Classic Hardcore team, Molikar (Sean Kennedy)
 ## X-License: All Rights Reserved
 ## X-Category: Leveling,Guild
-## Version: 0.11.59b
+## Version: 0.11.60d
 
-
+## IconTexture: Interface\AddOns\Hardcore\Media\wowhc-emblem-white-red.blp
 ## DefaultState: enabled
 ## SavedVariables: Hardcore_Settings,Backup_Character_Data
 ## SavedVariablesPerCharacter: WARNING,Hardcore_Character

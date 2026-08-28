@@ -234,7 +234,7 @@ function duo_rules:Check()
 		return
 	end
 
-	local in_follow_range = CheckInteractDistance(member_str, 4)
+	local in_follow_range = UnitInRange(member_str)
 	if in_follow_range then
 		duo_rules:ResetWarn()
 		return

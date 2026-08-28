@@ -310,6 +310,28 @@ local function DungeonTrackerAnyRunNamesRepeated()
 	return false
 end
 
+-- GetExpansionMaxLevel()
+--
+-- Returns the maximum level for the current character's game version.
+
+local function GetExpansionMaxLevel()
+	local max_level = 60 -- Default fallback
+	if Hardcore_Character.game_version ~= nil then
+		if Hardcore_Character.game_version == "Era" or Hardcore_Character.game_version == "SoM" then
+			max_level = 60
+		elseif Hardcore_Character.game_version == "TBC" then
+			max_level = 70
+		elseif Hardcore_Character.game_version == "WotLK" then
+			max_level = 80
+		elseif Hardcore_Character.game_version == "Cata" then
+			max_level = 85
+		elseif Hardcore_Character.game_version == "MoP" then
+			max_level = 90
+		end
+	end
+	return max_level
+end
+
 -- DungeonTrackerUpdateInfractions()
 --
 -- Updates the dt.overleveled_runs and dt.repeated_runs variables
@@ -319,17 +341,28 @@ end
 local function DungeonTrackerUpdateInfractions()
 	local repeated = 0
 	local over_leveled = 0
+	local expansion_max_level = GetExpansionMaxLevel()
 
 	for i = 1, #Hardcore_Character.dt.runs do
-		-- Check overleveled run
-		if Hardcore_Character.dt.runs[i].level > DungeonTrackerGetDungeonMaxLevelAtRunTime(Hardcore_Character.dt.runs[i]) then
-			over_leveled = over_leveled + 1
-		end
-		-- Check if the run is repeated further down in the array (this prevents counting runs twice when i ends up at j)
-		for j = i + 1, #Hardcore_Character.dt.runs do
-			if DungeonTrackerIsRepeatedRun(Hardcore_Character.dt.runs[i], Hardcore_Character.dt.runs[j]) then
-				repeated = repeated + 1
+		-- Only count infractions if the run was completed BEFORE reaching max level
+		if Hardcore_Character.dt.runs[i].level < expansion_max_level then
+			
+			-- Check overleveled run
+			if Hardcore_Character.dt.runs[i].level > DungeonTrackerGetDungeonMaxLevelAtRunTime(Hardcore_Character.dt.runs[i]) then
+				over_leveled = over_leveled + 1
 			end
+			
+			-- Check if the run is repeated further down in the array 
+			-- (prevents counting runs twice when i ends up at j)
+			for j = i + 1, #Hardcore_Character.dt.runs do
+				-- The repeat only counts if the subsequent run was ALSO done before max level
+				if Hardcore_Character.dt.runs[j].level < expansion_max_level then
+					if DungeonTrackerIsRepeatedRun(Hardcore_Character.dt.runs[i], Hardcore_Character.dt.runs[j]) then
+						repeated = repeated + 1
+					end
+				end
+			end
+			
 		end
 	end
 
@@ -366,24 +399,15 @@ local function DungeonTrackerWarnInfraction()
 	end
 
 	-- Get max level to know if we should even warn
-	if Hardcore_Character.game_version ~= nil then
-		local max_level
-		if Hardcore_Character.game_version == "Era" or Hardcore_Character.game_version == "SoM" then
-			max_level = 60
-		elseif Hardcore_Character.game_version == "WotLK" then
-			max_level = 80
-		else -- Cataclysm or anything else
-			max_level = 85
-		end
-		if UnitLevel("player") >= max_level then
-			Hardcore_Character.dt.warn_infractions = false
-			return
-		end
+	local max_expansion_level = GetExpansionMaxLevel()
+	if UnitLevel("player") >= max_expansion_level then
+		Hardcore_Character.dt.warn_infractions = false
+		return
 	end
 
 	-- See if the player's level is allowed in this dungeon
-	local max_level = DungeonTrackerGetDungeonMaxLevel(Hardcore_Character.dt.current.name)
-	if Hardcore_Character.dt.current.level > max_level then
+	local max_dungeon_level = DungeonTrackerGetDungeonMaxLevel(Hardcore_Character.dt.current.name)
+	if Hardcore_Character.dt.current.level > max_dungeon_level then
 		Hardcore_Character.dt.current.last_warn = Hardcore_Character.dt.current.time_inside
 		message = "You are overleveled for " .. Hardcore_Character.dt.current.name .. ". Leave dungeon now!"
 		Hardcore:Print(chat_color .. message)
@@ -393,36 +417,36 @@ local function DungeonTrackerWarnInfraction()
 	-- See if this dungeon was already in the list of completed runs, and warn every so many seconds if that is so
 	for i, v in ipairs(Hardcore_Character.dt.runs) do
 		if DungeonTrackerIsRepeatedRun(v, Hardcore_Character.dt.current) then
-			Hardcore_Character.dt.current.last_warn = Hardcore_Character.dt.current.time_inside
-			local instance_info1 = ""
-			local instance_info2 = ""
-			if v.iid ~= nil and Hardcore_Character.dt.current.iid ~= nil and v.iid ~= Hardcore_Character.dt.current.iid then
-				instance_info1 = " (ID:" .. Hardcore_Character.dt.current.iid .. ")"
-				instance_info2 = " (ID:" .. v.iid .. ")"
+			-- We only care if the previous run was ALSO done under max level
+			if v.level < max_expansion_level then
+				Hardcore_Character.dt.current.last_warn = Hardcore_Character.dt.current.time_inside
+				local instance_info1 = ""
+				local instance_info2 = ""
+				if v.iid ~= nil and Hardcore_Character.dt.current.iid ~= nil and v.iid ~= Hardcore_Character.dt.current.iid then
+					instance_info1 = " (ID:" .. Hardcore_Character.dt.current.iid .. ")"
+					instance_info2 = " (ID:" .. v.iid .. ")"
+				end
+				message = "You entered " .. v.name .. instance_info1 .. " already on " .. v.date .. instance_info2	
+						.. ". Leave dungeon now!"
+				Hardcore:Print( chat_color .. message)
+				Hardcore:ShowRedAlertFrame( message )
+				break -- No need to warn about 3rd and higher entries
 			end
-			message = "You entered " .. v.name .. instance_info1 .. " already on " .. v.date .. instance_info2	
-					.. ". Leave dungeon now!"
-			Hardcore:Print( chat_color .. message)
-			Hardcore:ShowRedAlertFrame( message )
-			break -- No need to warn about 3rd and higher entries
 		end
 	end
 
-	-- The following code probably can't ever be called, since pending runs with different instance IDs are automatically
-	-- logged upon entry. But let's keep it here for now. Better warned twice, than never.
-	-- See if this dungeon was already in the list of pending runs (but with a different instanceID), and warn every so many seconds if that is so
+	-- See if this dungeon was already in the list of pending runs
 	for i, v in ipairs(Hardcore_Character.dt.pending) do
-		-- We never warn about pending runs without an instanceID, they may or may not be the same as the current
-		-- (However, such pending runs should not exist, as they are deleted immediately when you exit the dungeon)
-		-- It is not possible for the IIDs to be the same at this point, as they would have been merged already
 		if v.iid ~= nil and Hardcore_Character.dt.current.iid ~= nil then
 			if DungeonTrackerIsRepeatedRun(v, Hardcore_Character.dt.current) then
-				Hardcore_Character.dt.current.last_warn = Hardcore_Character.dt.current.time_inside
-				message = "Your idle run of " .. v.name .. " of date ".. v.date .. " has another instance ID"
-					.. ". Leave dungeon now!"
-				Hardcore:Print( chat_color .. message )
-				Hardcore:ShowRedAlertFrame( message )
-				break -- No need to warn about 3rd and higher entries
+				if v.level < max_expansion_level then
+					Hardcore_Character.dt.current.last_warn = Hardcore_Character.dt.current.time_inside
+					message = "Your idle run of " .. v.name .. " of date ".. v.date .. " has another instance ID"
+						.. ". Leave dungeon now!"
+					Hardcore:Print( chat_color .. message )
+					Hardcore:ShowRedAlertFrame( message )
+					break -- No need to warn about 3rd and higher entries
+				end
 			end
 		end
 	end
@@ -732,7 +756,7 @@ local function DungeonTrackerSendPulse(now)
 		end
 		local data = name
 			.. COMM_FIELD_DELIM
-			.. GetAddOnMetadata("Hardcore", "Version")
+			.. C_AddOns.GetAddOnMetadata("Hardcore", "Version")
 			.. COMM_FIELD_DELIM
 			.. now
 			.. COMM_FIELD_DELIM
@@ -1111,7 +1135,7 @@ local function DungeonTrackerCheckVersions()
 			for i,v in ipairs( party ) do
 				if v == UnitName("player") then
 					local my_status = Hardcore:GetCleanVerificationStatus()
-					message = message .. v .. ":" .. GetAddOnMetadata("Hardcore", "Version") .. " [" .. my_status .. "]"
+					message = message .. v .. ":" .. C_AddOns.GetAddOnMetadata("Hardcore", "Version") .. " [" .. my_status .. "]"
 				else
 					message = message .. v .. ":"
 					if dt_party_member_addon_version[ v ] ~= nil then
